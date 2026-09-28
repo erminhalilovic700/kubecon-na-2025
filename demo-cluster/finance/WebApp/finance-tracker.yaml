@@ -1,0 +1,13 @@
+apiVersion: example.crossplane.io/v1
+kind: WebApp
+metadata:
+  name: finance-tracker
+  namespace: finance
+spec:
+  image: ermin700/finance-tracker:latest
+  fqdn: finance.local
+  port: 80
+  scaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
