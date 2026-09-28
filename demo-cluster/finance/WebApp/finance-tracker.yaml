@@ -5,7 +5,7 @@ metadata:
   namespace: finance
 spec:
   image: ermin700/finance-tracker:latest
-  fqdn: finance.local
+  fqdn: finance.erminstudio.com
   port: 80
   scaling:
     enabled: true
