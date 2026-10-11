@@ -24,7 +24,15 @@ spec:
   hosts:
     - keycloak.erminstudio.com
   http:
-    - route:
+    # Cloudflare terminates TLS and the tunnel reaches the gateway over plain HTTP,
+    # so Envoy rewrites X-Forwarded-Proto to "http". Restore the client-facing scheme
+    # so Keycloak treats requests as secure (Secure cookies, no proxy warnings).
+    - headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+            X-Forwarded-Port: "443"
+      route:
         - destination:
             # Service created by the Keycloak Operator: <keycloak-name>-service
             host: keycloak-service.keycloak.svc.cluster.local
