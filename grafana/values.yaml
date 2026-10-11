@@ -48,6 +48,9 @@ initChownData:
 persistence:
   enabled: true
   size: 2Gi
+  annotations:
+    # Never delete Grafana's data (dashboards, users) if the Argo CD app is removed
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 
 envValueFrom:
   GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:

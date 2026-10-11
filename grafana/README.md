@@ -3,14 +3,11 @@
 Grafana in the `observability` namespace, exposed at https://grafana.erminstudio.com
 (Cloudflare tunnel -> Istio `grafana-gateway`), with SSO through Keycloak.
 
-Installed with Helm directly (not Argo CD). `values.yaml` is the full set of values,
-so upgrades don't need `--reuse-values`:
+Deployed by Argo CD (`argo/grafana-app.yaml`): the `grafana/grafana` chart 10.5.15 with
+`values.yaml` from this repo. To change Grafana, edit `values.yaml` (or bump
+`targetRevision` in the Application) and push to `main`. Don't run `helm upgrade` by hand.
 
-```sh
-helm repo add grafana https://grafana.github.io/helm-charts
-helm -n observability upgrade --install grafana grafana/grafana \
-  --version 10.5.15 -f grafana/values.yaml
-```
+The Grafana PVC is annotated so Argo CD never prunes or deletes it.
 
 ## Secrets (created out-of-band, not in git)
 
