@@ -1,0 +1,6 @@
+data:
+  scopes: '[groups]'
+  policy.csv: |
+    g, ArgoCDAdmins, role:admin
+    g, ArgoCDViewers, role:readonly
+
