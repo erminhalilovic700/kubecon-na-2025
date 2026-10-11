@@ -35,7 +35,8 @@ spec:
         runAsGroup: 1000
       containers:
         - name: console
-          image: ermin700/console:v1.7.6-eql.1
+          # eql.2 = v1.7.6 + patch enabling SSO login from CONSOLE_IDP_* (see storage/minio-deploy/console/patches)
+          image: ermin700/console:v1.7.6-eql.2
           args: ["server"]
           env:
             - name: CONSOLE_MINIO_SERVER
@@ -46,6 +47,22 @@ spec:
             - name: CONSOLE_PBKDF_SALT
               valueFrom:
                 secretKeyRef: {name: minio-console-secret, key: CONSOLE_PBKDF_SALT}
+            # SSO via Keycloak (realm erminstudio, client minio)
+            - name: CONSOLE_IDP_URL
+              value: http://keycloak-service.keycloak.svc.cluster.local:8080/realms/erminstudio/.well-known/openid-configuration
+            - name: CONSOLE_IDP_CLIENT_ID
+              value: minio
+            - name: CONSOLE_IDP_SECRET
+              valueFrom:
+                secretKeyRef: {name: minio-oidc, key: client_secret}
+            - name: CONSOLE_IDP_CALLBACK
+              value: https://content.erminstudio.com/oauth_callback
+            - name: CONSOLE_IDP_NAME
+              value: keycloak
+            - name: CONSOLE_IDP_DISPLAY_NAME
+              value: Login with Keycloak
+            - name: CONSOLE_IDP_END_SESSION_ENDPOINT
+              value: http://keycloak-service.keycloak.svc.cluster.local:8080/realms/erminstudio/protocol/openid-connect/logout
           ports:
             - {name: http, containerPort: 9090}
           readinessProbe:
