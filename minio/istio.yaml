@@ -1,0 +1,44 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: content-cert
+  namespace: istio-system
+spec:
+  secretName: content-tls
+  dnsNames:
+    - content.erminstudio.com
+  issuerRef:
+    kind: ClusterIssuer
+    name: rancher-ca-issuer
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: content-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - hosts: [content.erminstudio.com]
+      port: {name: http, number: 80, protocol: HTTP}
+    - hosts: [content.erminstudio.com]
+      port: {name: https, number: 443, protocol: HTTPS}
+      tls:
+        mode: SIMPLE
+        credentialName: content-tls
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: content
+  namespace: minio
+spec:
+  gateways: [istio-system/content-gateway]
+  hosts: [content.erminstudio.com]
+  http:
+    - route:
+        - destination:
+            host: minio-console.minio.svc.cluster.local
+            port:
+              number: 9090

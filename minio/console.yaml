@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-console
+  namespace: minio
+  labels:
+    app: minio-console
+spec:
+  selector:
+    app: minio-console
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio-console
+  namespace: minio
+  labels:
+    app: minio-console
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio-console
+  template:
+    metadata:
+      labels:
+        app: minio-console
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: console
+          image: ermin700/console:v1.7.6-eql.1
+          args: ["server"]
+          env:
+            - name: CONSOLE_MINIO_SERVER
+              value: http://minio.minio.svc.cluster.local:9000
+            - name: CONSOLE_PBKDF_PASSPHRASE
+              valueFrom:
+                secretKeyRef: {name: minio-console-secret, key: CONSOLE_PBKDF_PASSPHRASE}
+            - name: CONSOLE_PBKDF_SALT
+              valueFrom:
+                secretKeyRef: {name: minio-console-secret, key: CONSOLE_PBKDF_SALT}
+          ports:
+            - {name: http, containerPort: 9090}
+          readinessProbe:
+            httpGet: {path: /ready, port: 9090}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 512Mi}
