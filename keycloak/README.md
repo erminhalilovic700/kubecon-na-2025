@@ -1,9 +1,9 @@
 # Keycloak on RKE2 via Argo CD
 
-- `keycloak/` (this dir) – Kustomize app: official Keycloak Operator 26.8.0, PostgreSQL 17, Keycloak CR, Ingress
+- `keycloak/` (this dir) – Kustomize app: official Keycloak Operator 26.8.0, PostgreSQL 17, Keycloak CR, Istio Gateway + VirtualService
 - `argo/keycloak-app.yaml` – Argo CD Application pointing at `keycloak/`
 
-URL: https://keycloak.10.0.0.100.sslip.io (cert from `selfsigned-ca-issuer`)
+URL: https://keycloak.erminstudio.com (TLS at Cloudflare, plain HTTP through `istio-ingressgateway` like grafana/argocd)
 
 ## Install
 

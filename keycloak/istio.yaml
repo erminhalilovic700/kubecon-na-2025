@@ -1,0 +1,32 @@
+# keycloak.erminstudio.com: Cloudflare (TLS) -> istio-ingressgateway (HTTP :80) -> Keycloak
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: keycloak-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - hosts:
+        - keycloak.erminstudio.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: keycloak
+spec:
+  gateways:
+    - keycloak-gateway
+  hosts:
+    - keycloak.erminstudio.com
+  http:
+    - route:
+        - destination:
+            # Service created by the Keycloak Operator: <keycloak-name>-service
+            host: keycloak-service.keycloak.svc.cluster.local
+            port:
+              number: 8080

@@ -9,4 +9,4 @@ resources:
   - https://github.com/keycloak/keycloak-k8s-resources//kubernetes?ref=26.8.0
   - postgres.yaml
   - keycloak.yaml
-  - ingress.yaml
+  - istio.yaml

@@ -20,13 +20,13 @@ spec:
       name: keycloak-db
       key: password
   hostname:
-    hostname: https://keycloak.10.0.0.100.sslip.io
-  # TLS is terminated at ingress-nginx; Keycloak serves plain HTTP inside the cluster
+    hostname: https://keycloak.erminstudio.com
+  # TLS is terminated at Cloudflare; Istio forwards plain HTTP to Keycloak
   http:
     httpEnabled: true
   proxy:
     headers: xforwarded
-  # We manage our own Ingress (ingress.yaml) so cert-manager can issue the cert
+  # Exposed through the Istio Gateway in istio.yaml instead
   ingress:
     enabled: false
   resources:
