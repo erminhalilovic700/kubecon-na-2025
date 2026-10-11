@@ -54,6 +54,21 @@ spec:
                 secretKeyRef: {name: minio-credentials, key: rootPassword}
             - name: MINIO_BROWSER_REDIRECT_URL
               value: https://content.erminstudio.com
+            - name: MINIO_IDENTITY_OPENID_CONFIG_URL
+              value: http://keycloak-service.keycloak.svc.cluster.local:8080/realms/erminstudio/.well-known/openid-configuration
+            - name: MINIO_IDENTITY_OPENID_CLIENT_ID
+              value: minio
+            - name: MINIO_IDENTITY_OPENID_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: minio-oidc, key: client_secret}
+            - name: MINIO_IDENTITY_OPENID_CLAIM_NAME
+              value: policy
+            - name: MINIO_IDENTITY_OPENID_SCOPES
+              value: openid,profile,email
+            - name: MINIO_IDENTITY_OPENID_DISPLAY_NAME
+              value: Keycloak
+            - name: MINIO_IDENTITY_OPENID_REDIRECT_URI
+              value: https://content.erminstudio.com/oauth_callback
           ports:
             - {name: s3, containerPort: 9000}
             - {name: console, containerPort: 9001}

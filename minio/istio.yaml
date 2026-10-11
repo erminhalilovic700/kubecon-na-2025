@@ -37,7 +37,12 @@ spec:
   gateways: [istio-system/content-gateway]
   hosts: [content.erminstudio.com]
   http:
-    - route:
+    - headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+            X-Forwarded-Port: "443"
+      route:
         - destination:
             host: minio-console.minio.svc.cluster.local
             port:
