@@ -1,0 +1,37 @@
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    # The CRD is created in the same sync, so skip dry-run on first install
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  instances: 1
+  db:
+    vendor: postgres
+    host: keycloak-postgres
+    port: 5432
+    database: keycloak
+    usernameSecret:
+      name: keycloak-db
+      key: username
+    passwordSecret:
+      name: keycloak-db
+      key: password
+  hostname:
+    hostname: https://keycloak.10.0.0.100.sslip.io
+  # TLS is terminated at ingress-nginx; Keycloak serves plain HTTP inside the cluster
+  http:
+    httpEnabled: true
+  proxy:
+    headers: xforwarded
+  # We manage our own Ingress (ingress.yaml) so cert-manager can issue the cert
+  ingress:
+    enabled: false
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      memory: 1536Mi
