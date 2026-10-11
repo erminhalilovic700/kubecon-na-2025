@@ -83,3 +83,38 @@ grafana.ini:
     name_attribute_path: name
     # Keycloak "grafana" client roles -> Grafana org role
     role_attribute_path: contains(roles[*], 'admin') && 'Admin' || contains(roles[*], 'editor') && 'Editor' || 'Viewer'
+
+# Istio routing for grafana.erminstudio.com
+# (Cloudflare tunnel -> istio-ingressgateway :80 (NodePort 30133) -> grafana service)
+extraObjects:
+  - apiVersion: networking.istio.io/v1
+    kind: Gateway
+    metadata:
+      name: grafana-gateway
+      namespace: istio-system
+    spec:
+      selector:
+        istio: ingressgateway
+      servers:
+        - hosts:
+            - grafana.erminstudio.com
+          port:
+            name: http
+            number: 80
+            protocol: HTTP
+  - apiVersion: networking.istio.io/v1
+    kind: VirtualService
+    metadata:
+      name: grafana
+      namespace: observability
+    spec:
+      gateways:
+        - istio-system/grafana-gateway
+      hosts:
+        - grafana.erminstudio.com
+      http:
+        - route:
+            - destination:
+                host: grafana.observability.svc.cluster.local
+                port:
+                  number: 80

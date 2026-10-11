@@ -2,6 +2,7 @@
 
 Grafana in the `observability` namespace, exposed at https://grafana.erminstudio.com
 (Cloudflare tunnel -> Istio `grafana-gateway`), with SSO through Keycloak.
+The Istio Gateway and VirtualService are in `values.yaml` under `extraObjects`.
 
 Deployed by Argo CD (`argo/grafana-app.yaml`): the `grafana/grafana` chart 10.5.15 with
 `values.yaml` from this repo. To change Grafana, edit `values.yaml` (or bump
