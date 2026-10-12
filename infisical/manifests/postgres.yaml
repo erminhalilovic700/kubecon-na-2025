@@ -1,0 +1,70 @@
+# PostgreSQL 18 for Infisical (official image). Credentials: Secret "infisical-postgres" (not in git).
+# postgres:18 keeps data under /var/lib/postgresql/18/docker, so the volume is mounted at
+# /var/lib/postgresql and PGDATA is left at the image default.
+apiVersion: v1
+kind: Service
+metadata:
+  name: infisical-postgres
+  namespace: infisical
+  labels:
+    app: infisical-postgres
+spec:
+  selector:
+    app: infisical-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: infisical-postgres
+  namespace: infisical
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  serviceName: infisical-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infisical-postgres
+  template:
+    metadata:
+      labels:
+        app: infisical-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: infisical
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: {name: infisical-postgres, key: username}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: infisical-postgres, key: password}
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d infisical"]
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 512Mi}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi

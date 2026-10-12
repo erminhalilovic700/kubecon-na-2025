@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infisical
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    # Infisical Helm chart, with values from this repo
+    - repoURL: https://dl.cloudsmith.io/public/infisical/helm-charts/helm/charts/
+      chart: infisical-standalone
+      targetRevision: 1.11.0
+      helm:
+        releaseName: infisical
+        valueFiles:
+          - $values/infisical/values.yaml
+    - repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+      targetRevision: main
+      ref: values
+    # PostgreSQL 18, Redis 7.4 and Istio routing
+    - repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+      targetRevision: main
+      path: infisical/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infisical
+  # The chart stamps the Deployment with updatedAt: {{ now }} on every render.
+  # Ignore it, or Argo CD would see a diff on every refresh and restart Infisical.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: infisical
+      jsonPointers:
+        - /metadata/annotations/updatedAt
+        - /spec/template/metadata/annotations/updatedAt
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true

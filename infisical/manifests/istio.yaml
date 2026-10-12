@@ -1,0 +1,39 @@
+# infisical.erminstudio.com: Cloudflare (TLS) -> istio-ingressgateway (HTTP :80, NodePort 30133) -> Infisical
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: infisical-gateway
+  namespace: infisical
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - hosts:
+        - infisical.erminstudio.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: infisical
+  namespace: infisical
+spec:
+  gateways:
+    - infisical-gateway
+  hosts:
+    - infisical.erminstudio.com
+  http:
+    # Cloudflare terminates TLS; restore the client-facing scheme (Envoy rewrites it to "http")
+    - headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+            X-Forwarded-Port: "443"
+      route:
+        - destination:
+            host: infisical.infisical.svc.cluster.local
+            port:
+              number: 8080

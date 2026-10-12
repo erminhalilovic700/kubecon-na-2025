@@ -1,0 +1,28 @@
+# Helm values for the infisical-standalone chart (Argo CD app: argo/infisical-app.yaml).
+# The chart's bundled ingress-nginx, Bitnami PostgreSQL and Bitnami Redis are disabled;
+# PostgreSQL 18, Redis 7.4 and the Istio routing live in infisical/manifests/.
+# All configuration (DB/Redis URLs, ENCRYPTION_KEY, AUTH_SECRET, SITE_URL) comes from the
+# Secret "infisical-secrets", which is created by hand and never committed.
+infisical:
+  fullnameOverride: infisical      # Service/Deployment named "infisical"
+  replicaCount: 1
+  image:
+    tag: "v0.166.3"
+  kubeSecretRef: infisical-secrets
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      memory: 1000Mi
+
+ingress:
+  enabled: false
+  nginx:
+    enabled: false
+
+postgresql:
+  enabled: false
+
+redis:
+  enabled: false
