@@ -10,7 +10,7 @@ spec:
   instances: 1
   db:
     vendor: postgres
-    host: keycloak-postgres
+    host: keycloak-postgres18
     port: 5432
     database: keycloak
     usernameSecret:
