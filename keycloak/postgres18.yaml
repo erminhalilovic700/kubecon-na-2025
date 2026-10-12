@@ -1,0 +1,76 @@
+# PostgreSQL 18 for Keycloak. Uses the same "keycloak-db" Secret as the 17 instance.
+# postgres:18 keeps its data under /var/lib/postgresql/18/docker (the image default),
+# so the volume is mounted at /var/lib/postgresql and PGDATA is not set.
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-postgres18
+  labels:
+    app: keycloak-postgres18
+spec:
+  selector:
+    app: keycloak-postgres18
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak-postgres18
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  serviceName: keycloak-postgres18
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak-postgres18
+  template:
+    metadata:
+      labels:
+        app: keycloak-postgres18
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: keycloak
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db
+                  key: password
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d keycloak"]
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
+
