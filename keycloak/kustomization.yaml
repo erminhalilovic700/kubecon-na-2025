@@ -7,7 +7,6 @@ resources:
   - namespace.yaml
   # Official Keycloak Operator: CRDs, RBAC and operator Deployment
   - https://github.com/keycloak/keycloak-k8s-resources//kubernetes?ref=26.8.0
-  - postgres.yaml
   - keycloak.yaml
   - istio.yaml
   - backup-cronjob.yaml
