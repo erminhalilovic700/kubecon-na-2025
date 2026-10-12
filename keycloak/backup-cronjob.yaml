@@ -23,12 +23,12 @@ spec:
           initContainers:
             # 1. Dump the database (custom format, compressed) and check the file is readable
             - name: pg-dump
-              image: postgres:17
+              image: postgres:18
               env:
                 - name: PGHOST
                   value: keycloak-postgres
                 - name: PGDATABASE
-                  value: keycloak
+                  value: keycloak-postgres18
                 - name: PGUSER
                   valueFrom:
                     secretKeyRef: {name: keycloak-db, key: username}
