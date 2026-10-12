@@ -1,0 +1,80 @@
+# Nightly Keycloak database backup: pg_dump -> MinIO bucket "keycloak-backups"
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: keycloak-db-backup
+  namespace: keycloak
+spec:
+  schedule: "0 2 * * *"
+  timeZone: America/New_York
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          restartPolicy: Never
+          volumes:
+            - name: backup
+              emptyDir: {}
+          initContainers:
+            # 1. Dump the database (custom format, compressed) and check the file is readable
+            - name: pg-dump
+              image: postgres:17
+              env:
+                - name: PGHOST
+                  value: keycloak-postgres
+                - name: PGDATABASE
+                  value: keycloak
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef: {name: keycloak-db, key: username}
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef: {name: keycloak-db, key: password}
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  f=/backup/keycloak-$(date -u +%Y%m%dT%H%M%SZ).dump
+                  pg_dump --format=custom --file="$f"
+                  pg_restore --list "$f" > /dev/null
+                  ls -l "$f"
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          containers:
+            # 2. Upload the dump to MinIO
+            - name: upload
+              image: amazon/aws-cli:2.37.11
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: {name: keycloak-backup-s3, key: AWS_ACCESS_KEY_ID}
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: {name: keycloak-backup-s3, key: AWS_SECRET_ACCESS_KEY}
+                - name: AWS_ENDPOINT_URL
+                  value: http://minio.minio.svc.cluster.local:9000
+                - name: AWS_DEFAULT_REGION
+                  value: us-east-1
+                # Only send/verify checksums when S3 requires them (MinIO-friendly)
+                - name: AWS_REQUEST_CHECKSUM_CALCULATION
+                  value: when_required
+                - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+                  value: when_required
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  aws configure set default.s3.addressing_style path
+                  aws s3 cp /backup/ s3://keycloak-backups/db/ --recursive
+                  echo "Latest backups:"
+                  aws s3 ls s3://keycloak-backups/db/ | tail -5
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+
