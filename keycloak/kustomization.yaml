@@ -10,3 +10,4 @@ resources:
   - postgres.yaml
   - keycloak.yaml
   - istio.yaml
+  - backup-cronjob.yaml
