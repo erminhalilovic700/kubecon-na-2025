@@ -28,7 +28,7 @@ spec:
                 - name: PGHOST
                   value: keycloak-postgres
                 - name: PGDATABASE
-                  value: keycloak-postgres18
+                  value: keycloak
                 - name: PGUSER
                   valueFrom:
                     secretKeyRef: {name: keycloak-db, key: username}
