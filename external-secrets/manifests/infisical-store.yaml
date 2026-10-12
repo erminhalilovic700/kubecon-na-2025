@@ -1,0 +1,29 @@
+# Infisical as the cluster-wide secret source. Talks to Infisical inside the cluster (no Cloudflare).
+# Credentials: Secret "infisical-universal-auth" in namespace external-secrets (created by hand).
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: infisical
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  provider:
+    infisical:
+      hostAPI: http://infisical.infisical.svc.cluster.local:8080
+      auth:
+        universalAuthCredentials:
+          clientId:
+            name: infisical-universal-auth
+            namespace: external-secrets
+            key: clientId
+          clientSecret:
+            name: infisical-universal-auth
+            namespace: external-secrets
+            key: clientSecret
+      secretsScope:
+        projectSlug: erminstudio-06-zp          # printed by the copy script, e.g. erminstudio-ab1c
+        environmentSlug: prod
+        secretsPath: /
+        recursive: false
+        expandSecretReferences: false      # copy values literally, don't expand ${...}
