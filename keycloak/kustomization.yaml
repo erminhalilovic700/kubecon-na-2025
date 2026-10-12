@@ -11,3 +11,5 @@ resources:
   - keycloak.yaml
   - istio.yaml
   - backup-cronjob.yaml
+  - postgres18.yaml
+
