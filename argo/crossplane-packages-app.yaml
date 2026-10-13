@@ -1,0 +1,31 @@
+# Functions, provider, ProviderConfig, XRDs and Compositions from crossplane/ (not the examples).
+# ProviderConfig's kind only exists once the provider is installed, hence the dry-run skip and retries.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crossplane-packages
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+    targetRevision: main
+    path: crossplane
+    directory:
+      recurse: true
+      exclude: '06-examples/*/*'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crossplane-system
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff: {duration: 30s, factor: 2, maxDuration: 5m}

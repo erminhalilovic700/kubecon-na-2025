@@ -1,0 +1,40 @@
+# app-set-template.yaml with the repo filled in, so the root app can sync it.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demo-cluster-files
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        requeueAfterSeconds: 60
+        repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+        revision: main
+        files:
+          - path: demo-cluster/*/*/*.yaml
+  template:
+    metadata:
+      # name = <ns>-<kind>-<name> derived from demo-cluster/<ns>/<kind>/<name>.yaml
+      name: '{{ printf "%s-%s-%s" (index .path.segments 1) (index .path.segments 2) (index (splitList "." .path.filename) 0) | lower }}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+        targetRevision: main
+        path: '{{ index .path.segments 0 }}/{{ index .path.segments 1 }}/{{ index .path.segments 2 }}'
+        directory:
+          recurse: false
+          include: '{{ .path.filename }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ index .path.segments 1 | lower }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

@@ -1,0 +1,51 @@
+# Ingress gateway, kept identical to the istioctl-installed one on RKE2: same name, selector,
+# service account and NodePorts (the Cloudflare tunnel reaches it through the NodePorts).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-ingressgateway
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: gateway
+    targetRevision: 1.29.2
+    helm:
+      releaseName: istio-ingressgateway
+      valuesObject:
+        name: istio-ingressgateway
+        labels:
+          app: istio-ingressgateway
+          istio: ingressgateway
+        serviceAccount:
+          name: istio-ingressgateway-service-account
+        replicaCount: 1
+        autoscaling:
+          enabled: false
+        resources:
+          requests: {cpu: 10m, memory: 40Mi}
+          limits: {cpu: "2", memory: 1Gi}
+        service:
+          type: NodePort
+          ports:
+            - {name: status-port, port: 15021, targetPort: 15021, nodePort: 30656, protocol: TCP}
+            - {name: http2, port: 80, targetPort: 8080, nodePort: 30133, protocol: TCP}
+            - {name: https, port: 443, targetPort: 8443, nodePort: 31677, protocol: TCP}
+            - {name: tcp, port: 31400, targetPort: 31400, nodePort: 31280, protocol: TCP}
+            - {name: tls, port: 15443, targetPort: 15443, nodePort: 31464, protocol: TCP}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff: {duration: 30s, factor: 2, maxDuration: 5m}

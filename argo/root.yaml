@@ -1,0 +1,35 @@
+# App of apps: the only Application applied by hand. Everything else in argo/ is synced
+# from here, in sync waves:
+#
+#   Stage 1, platform (what the apps need before they can sync)
+#     wave 0   cert-manager, istio-base, crossplane          (charts that bring the CRDs)
+#     wave 1   istiod, crossplane-packages                   (need the wave-0 CRDs)
+#     wave 2   istio-ingressgateway                          (needs istiod for injection)
+#   Stage 2, apps
+#     wave 10  keycloak, infisical, external-secrets, grafana, minio, demo-cluster-files
+#
+# A wave starts only when every Application in the previous wave is Healthy. That needs the
+# Application health check in argocd/argocd-cm-app-health.yaml; without it all waves start at once.
+#
+#   kubectl apply -f argo/root.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+    targetRevision: main
+    path: argo
+    directory:
+      # app-set-template.yaml and ingress-template.yaml have placeholders, so they're left out
+      include: '{*-app.yaml,*-appset.yaml}'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false       # removing a file from argo/ never deletes a running app
+      selfHeal: true

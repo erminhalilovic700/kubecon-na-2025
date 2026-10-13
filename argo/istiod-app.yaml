@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istiod
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: istiod
+    targetRevision: 1.29.2
+    helm:
+      releaseName: istiod
+      valuesObject:
+        # demo profile: small requests (10m CPU / 100Mi), so it fits on e2-medium nodes too
+        profile: demo
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  # istiod patches its own webhooks' caBundle and failurePolicy at runtime.
+  # On clusters first installed with istioctl, injection runs through the istio-revision-tag-default
+  # webhook and istioctl switched istio-sidecar-injector off (selectors set to never-match).
+  # Leave those selectors alone so Argo CD doesn't switch it back on and inject sidecars twice.
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      name: istio-sidecar-injector
+      jqPathExpressions:
+        - .webhooks[]?.namespaceSelector
+        - .webhooks[]?.objectSelector
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[]?.clientConfig.caBundle
+        - .webhooks[]?.failurePolicy
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[]?.clientConfig.caBundle
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 10
+      backoff: {duration: 30s, factor: 2, maxDuration: 5m}
