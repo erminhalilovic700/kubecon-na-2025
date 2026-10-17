@@ -64,3 +64,15 @@ What gets migrated (inventoried 2026-10-16):
 The MinIO PVC `data-minio-0` is kept (`whenDeleted: Retain`). `git revert` the cutover commit and
 push; Argo CD brings MinIO back on its untouched data. After the cutover `minio.minio.svc` points
 at RustFS, so `rclone-sync-job.yaml` no longer reads from MinIO; don't re-run it. Delete the PVC only once you're happy.
+
+## Gotchas found during cutover
+
+- **Keycloak SSO and Cloudflare.** RustFS's OIDC client sends no `User-Agent`, and Cloudflare
+  challenges such requests (403), so provider discovery failed ("provider not discovered").
+  Fix: `minio/keycloak-internal.yaml` serves `keycloak.erminstudio.com` over HTTPS on the Istio
+  gateway (internal `rancher-ca` cert); `rustfs-0` resolves that name to the gateway via
+  `hostAliases`, allows it in `RUSTFS_OUTBOUND_ALLOW_ORIGINS`, and trusts the CA via
+  `SSL_CERT_FILE`. RustFS only discovers the provider at startup: after changing any of this,
+  `kubectl -n minio rollout restart sts/rustfs`.
+- **Bare-host redirect.** The `/` → `/rustfs/console/` redirect must skip requests with an
+  `Authorization` header, or the console's Key Login (a signed `GET /`) gets a 301 and fails.
