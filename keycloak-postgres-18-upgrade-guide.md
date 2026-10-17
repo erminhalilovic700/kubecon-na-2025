@@ -24,7 +24,7 @@ switch Keycloak over. The old 17 database stays untouched, so **rolling back is 
 **Downtime:** Keycloak is stopped for about **5 minutes** (steps 3–8). During that time nobody can
 log in through Keycloak, but people already logged in to Grafana, Argo CD or MinIO stay logged in.
 
-Work in `~/Projects/kubecon-na-2025` and run `git pull` first.
+Work in `~/Projects/erminstudio` and run `git pull` first.
 
 ---
 

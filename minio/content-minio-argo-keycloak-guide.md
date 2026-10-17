@@ -14,7 +14,7 @@ so that if something breaks you know which step caused it.
 
 ## Part A: Move content to Argo
 
-Work in `~/Projects/kubecon-na-2025` and run `git pull` first.
+Work in `~/Projects/erminstudio` and run `git pull` first.
 
 ### A1. Create `minio/minio.yaml` (MinIO server)
 
@@ -245,7 +245,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+    repoURL: https://github.com/erminhalilovic700/erminstudio.git
     targetRevision: main
     path: minio
   destination:

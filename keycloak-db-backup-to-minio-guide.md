@@ -96,7 +96,7 @@ kubectl -n keycloak create secret generic keycloak-backup-s3 \
 
 ### 2.2 Add the CronJob to the repo
 
-In `~/Projects/kubecon-na-2025` (run `git pull` first), create **`keycloak/backup-cronjob.yaml`**:
+In `~/Projects/erminstudio` (run `git pull` first), create **`keycloak/backup-cronjob.yaml`**:
 
 ```yaml
 # Nightly Keycloak database backup: pg_dump -> MinIO bucket "keycloak-backups"

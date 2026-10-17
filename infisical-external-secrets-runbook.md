@@ -17,7 +17,7 @@ External Secrets Operator ──► Kubernetes Secret <secret> in <namespace> �
 |---|---|
 | `infisical-external-secrets-runbook.md` | this runbook |
 | `infisical-migrate-secrets.py` | **the copy script**: Kubernetes Secrets → Infisical, values never printed |
-| `infisical-eso-files/` | ready-made repo files (copy into `kubecon-na-2025` in Part 4) |
+| `infisical-eso-files/` | ready-made repo files (copy into `erminstudio` in Part 4) |
 
 **Already checked:**
 
@@ -155,7 +155,7 @@ Use the **`external-secrets`** identity here, not the migration one.
 ### 4.2 Copy the ready-made files into the repo
 
 ```sh
-cd ~/Projects/kubecon-na-2025 && git pull
+cd ~/Projects/erminstudio && git pull
 cp -R ~/Desktop/infisical-eso-files/argo ~/Desktop/infisical-eso-files/external-secrets .
 ```
 
@@ -233,7 +233,7 @@ One command changes all 9 ExternalSecrets: the target becomes the real Secret na
 creation policy becomes **Orphan**:
 
 ```sh
-cd ~/Projects/kubecon-na-2025
+cd ~/Projects/erminstudio
 sed -i '' -e 's/-infisical-check$//' -e 's/creationPolicy: Owner/creationPolicy: Orphan/' \
   external-secrets/manifests/externalsecrets.yaml
 git diff --stat                     # 1 file, 18 lines changed (9 names + 9 policies)

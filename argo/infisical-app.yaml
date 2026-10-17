@@ -16,11 +16,11 @@ spec:
         releaseName: infisical
         valueFiles:
           - $values/infisical/values.yaml
-    - repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+    - repoURL: https://github.com/erminhalilovic700/erminstudio.git
       targetRevision: main
       ref: values
     # PostgreSQL 18, Redis 7.4 and Istio routing
-    - repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+    - repoURL: https://github.com/erminhalilovic700/erminstudio.git
       targetRevision: main
       path: infisical/manifests
   destination:

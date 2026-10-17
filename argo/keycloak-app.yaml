@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+    repoURL: https://github.com/erminhalilovic700/erminstudio.git
     targetRevision: main
     path: keycloak
   destination:

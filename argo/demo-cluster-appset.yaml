@@ -12,7 +12,7 @@ spec:
   generators:
     - git:
         requeueAfterSeconds: 60
-        repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+        repoURL: https://github.com/erminhalilovic700/erminstudio.git
         revision: main
         files:
           - path: demo-cluster/*/*/*.yaml
@@ -23,7 +23,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+        repoURL: https://github.com/erminhalilovic700/erminstudio.git
         targetRevision: main
         path: '{{ index .path.segments 0 }}/{{ index .path.segments 1 }}/{{ index .path.segments 2 }}'
         directory:

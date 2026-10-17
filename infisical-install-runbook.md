@@ -1,7 +1,7 @@
 # Runbook: Infisical on RKE2, managed by Argo CD, exposed via Cloudflare + Istio, with Keycloak
 
 **Result:** Infisical at **https://infisical.erminstudio.com**, deployed by Argo CD from
-`kubecon-na-2025`, reached through the Cloudflare tunnel and Istio, with Keycloak in front for login.
+`erminstudio`, reached through the Cloudflare tunnel and Istio, with Keycloak in front for login.
 
 ```
 browser → Cloudflare (TLS) → tunnel "RancherAPI" → http://10.0.0.100:30133 (istio-ingressgateway)
@@ -70,7 +70,7 @@ kubectl -n infisical get secret infisical-secrets -o jsonpath='{.data.ENCRYPTION
 
 ## Part 2: Add the files to the repo
 
-In `~/Projects/kubecon-na-2025` (run `git pull` first), create this layout:
+In `~/Projects/erminstudio` (run `git pull` first), create this layout:
 
 ```
 infisical/
@@ -333,11 +333,11 @@ spec:
         releaseName: infisical
         valueFiles:
           - $values/infisical/values.yaml
-    - repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+    - repoURL: https://github.com/erminhalilovic700/erminstudio.git
       targetRevision: main
       ref: values
     # PostgreSQL 18, Redis 7.4 and Istio routing
-    - repoURL: https://github.com/erminhalilovic700/kubecon-na-2025.git
+    - repoURL: https://github.com/erminhalilovic700/erminstudio.git
       targetRevision: main
       path: infisical/manifests
   destination:
@@ -366,7 +366,7 @@ spec:
 ## Part 3: Commit, push, register with Argo CD
 
 ```sh
-cd ~/Projects/kubecon-na-2025
+cd ~/Projects/erminstudio
 git status            # expect: infisical/ (4 files) and argo/infisical-app.yaml, nothing else
 git add infisical argo/infisical-app.yaml
 git commit -m "Add Infisical (Argo CD, PostgreSQL 18, Redis 7.4, Istio)"
