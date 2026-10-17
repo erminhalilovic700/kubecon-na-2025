@@ -56,13 +56,17 @@ cat > keycloak-backup.json <<'JSON'
  {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject"],"Resource":["arn:aws:s3:::keycloak-backups/*"]}]}
 JSON
 
-rc admin policy create r content-rw content-rw.json
-rc admin policy create r keycloak-backup keycloak-backup.json
+# Idempotent: skip anything that already exists, so the script is safe to re-run.
+for p in content-rw keycloak-backup; do
+  rc admin policy info r "$p" >/dev/null 2>&1 || rc admin policy create r "$p" "$p.json"
+done
 
-rc admin user add r "$CONTENT_KEY" "$CONTENT_SECRET"
-rc admin policy attach r content-rw --user "$CONTENT_KEY"
-rc admin user add r "$BACKUP_KEY" "$BACKUP_SECRET"
-rc admin policy attach r keycloak-backup --user "$BACKUP_KEY"
+rc admin user info r "$CONTENT_KEY" >/dev/null 2>&1 || {
+  rc admin user add r "$CONTENT_KEY" "$CONTENT_SECRET"
+  rc admin policy attach r content-rw --user "$CONTENT_KEY"; }
+rc admin user info r "$BACKUP_KEY" >/dev/null 2>&1 || {
+  rc admin user add r "$BACKUP_KEY" "$BACKUP_SECRET"
+  rc admin policy attach r keycloak-backup --user "$BACKUP_KEY"; }
 
 rc admin service-account info r "$OBS_KEY" >/dev/null 2>&1 \
   || rc admin service-account create r "$OBS_KEY" "$OBS_SECRET" --name observability \

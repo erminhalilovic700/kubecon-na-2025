@@ -24,14 +24,15 @@ What gets migrated (inventoried 2026-10-16):
    ```sh
    kubectl -n minio rollout status sts/rustfs
    ```
-2. Recreate the identities (same access/secret keys as today):
-   ```sh
-   ./minio/migrate-to-rustfs/setup-iam.sh     # ends with three "OK" lines
-   ```
-3. Copy and verify the data:
+2. Copy and verify the data:
    ```sh
    kubectl apply -f minio/migrate-to-rustfs/rclone-sync-job.yaml
    kubectl -n minio logs -f job/rclone-sync    # ends with ALL BUCKETS SYNCED AND VERIFIED
+   ```
+3. Recreate the identities (same access/secret keys as today; run after the copy so
+   the buckets exist for its access checks; safe to re-run):
+   ```sh
+   ./minio/migrate-to-rustfs/setup-iam.sh     # ends with three "OK" lines
    ```
 4. Look around the RustFS console (root login):
    ```sh
