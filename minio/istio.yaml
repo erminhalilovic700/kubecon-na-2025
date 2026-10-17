@@ -37,9 +37,11 @@ spec:
   gateways: [istio-system/content-gateway]
   hosts: [content.erminstudio.com]
   http:
-    # RustFS console lives under /rustfs/console/; send a plain browser visit to the bare
-    # host there. Signed S3 calls to "/" (ListBuckets, used by the console's Key Login)
+    # A plain browser visit to the bare host starts Keycloak SSO directly (lands in the
+    # console after login), skipping RustFS's login page. /rustfs/console/ still shows the
+    # login page for Key Login. Signed S3 calls to "/" (ListBuckets, used by Key Login)
     # carry an Authorization header and must reach RustFS, not be redirected.
+    # 302, not the default 301: browsers cache 301s.
     - match:
         - uri:
             exact: /
@@ -47,7 +49,8 @@ spec:
             authorization:
               regex: ".+"
       redirect:
-        uri: /rustfs/console/
+        uri: /rustfs/admin/v3/oidc/authorize/default
+        redirectCode: 302
     # RustFS port 9001 serves the console, its API calls and the OIDC callback
     - headers:
         request:
