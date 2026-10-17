@@ -74,5 +74,7 @@ at RustFS, so `rclone-sync-job.yaml` no longer reads from MinIO; don't re-run it
   `hostAliases`, allows it in `RUSTFS_OUTBOUND_ALLOW_ORIGINS`, and trusts the CA via
   `SSL_CERT_FILE`. RustFS only discovers the provider at startup: after changing any of this,
   `kubectl -n minio rollout restart sts/rustfs`.
-- **Bare-host redirect.** The `/` → `/rustfs/console/` redirect must skip requests with an
-  `Authorization` header, or the console's Key Login (a signed `GET /`) gets a 301 and fails.
+- **Bare-host redirect.** A browser visit to `/` is sent (302) straight to
+  `/rustfs/admin/v3/oidc/authorize/default`, so SSO skips RustFS's login page; `/rustfs/console/`
+  still shows it for Key Login. The rule must skip requests with an `Authorization` header, or
+  the console's Key Login (a signed `GET /`) gets redirected and fails.
