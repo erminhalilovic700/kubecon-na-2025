@@ -1,0 +1,56 @@
+# One-off: copy every bucket from MinIO to RustFS, then verify byte-for-byte.
+# Not part of the kustomization (Argo CD ignores it). Run it by hand, see rustfs-migration-runbook.md:
+#   kubectl -n minio delete job rclone-sync --ignore-not-found
+#   kubectl apply -f minio/migrate-to-rustfs/rclone-sync-job.yaml
+#   kubectl -n minio logs -f job/rclone-sync
+# Safe to re-run: sync only copies what changed (used again for the final delta at cutover).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rclone-sync
+  namespace: minio
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+      containers:
+        - name: rclone
+          # Mirror of rclone/rclone:1.75.2
+          image: ermin700/rclone:1.75.2
+          command: ["sh", "-ec"]
+          args:
+            - |
+              for b in $(rclone lsf src: --dirs-only | tr -d /); do
+                echo "== $b"
+                rclone mkdir "dst:$b"
+                rclone sync --metadata --stats-one-line --stats 30s "src:$b" "dst:$b"
+                rclone check --download --one-way "src:$b" "dst:$b"
+              done
+              echo "ALL BUCKETS SYNCED AND VERIFIED"
+          env:
+            - {name: HOME, value: /tmp}
+            - name: ROOT_USER
+              valueFrom: {secretKeyRef: {name: minio-credentials, key: rootUser}}
+            - name: ROOT_PASSWORD
+              valueFrom: {secretKeyRef: {name: minio-credentials, key: rootPassword}}
+            # src = MinIO, dst = RustFS (both use the same root credentials)
+            - {name: RCLONE_CONFIG_SRC_TYPE, value: s3}
+            - {name: RCLONE_CONFIG_SRC_PROVIDER, value: Minio}
+            - {name: RCLONE_CONFIG_SRC_ENDPOINT, value: "http://minio.minio.svc.cluster.local:9000"}
+            - {name: RCLONE_CONFIG_SRC_ACCESS_KEY_ID, value: $(ROOT_USER)}
+            - {name: RCLONE_CONFIG_SRC_SECRET_ACCESS_KEY, value: $(ROOT_PASSWORD)}
+            - {name: RCLONE_CONFIG_DST_TYPE, value: s3}
+            - {name: RCLONE_CONFIG_DST_PROVIDER, value: Other}
+            - {name: RCLONE_CONFIG_DST_ENDPOINT, value: "http://rustfs.minio.svc.cluster.local:9000"}
+            - {name: RCLONE_CONFIG_DST_ACCESS_KEY_ID, value: $(ROOT_USER)}
+            - {name: RCLONE_CONFIG_DST_SECRET_ACCESS_KEY, value: $(ROOT_PASSWORD)}
+            - {name: RCLONE_CONFIG_DST_FORCE_PATH_STYLE, value: "true"}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {memory: 512Mi}

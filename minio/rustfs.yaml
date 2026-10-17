@@ -1,0 +1,99 @@
+# RustFS: S3-compatible replacement for MinIO (see rustfs-migration-runbook.md).
+# Phase 1: runs next to MinIO on its own Service/PVC; nothing points at it yet.
+apiVersion: v1
+kind: Service
+metadata:
+  name: rustfs
+  namespace: minio
+  labels:
+    app: rustfs
+spec:
+  selector:
+    app: rustfs
+  ports:
+    - name: s3
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rustfs
+  namespace: minio
+  labels:
+    app: rustfs
+spec:
+  serviceName: rustfs
+  replicas: 1
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  selector:
+    matchLabels:
+      app: rustfs
+  template:
+    metadata:
+      labels:
+        app: rustfs
+    spec:
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        runAsNonRoot: true
+      containers:
+        - name: rustfs
+          # Mirror of rustfs/rustfs:1.0.2
+          image: ermin700/rustfs:1.0.2
+          command: ["/usr/bin/rustfs"]
+          env:
+            - name: RUSTFS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef: {name: minio-credentials, key: rootUser}
+            - name: RUSTFS_SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: minio-credentials, key: rootPassword}
+            - {name: RUSTFS_VOLUMES, value: /data}
+            - {name: RUSTFS_ADDRESS, value: ":9000"}
+            - {name: RUSTFS_CONSOLE_ENABLE, value: "true"}
+            - {name: RUSTFS_CONSOLE_ADDRESS, value: ":9001"}
+            - {name: RUSTFS_REGION, value: us-east-1}
+            - {name: RUSTFS_OBS_LOG_DIRECTORY, value: /logs}
+            - {name: RUSTFS_OBS_LOGGER_LEVEL, value: info}
+          ports:
+            - {name: s3, containerPort: 9000}
+            - {name: console, containerPort: 9001}
+          livenessProbe:
+            httpGet: {path: /health, port: 9000}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: {path: /health/ready, port: 9000}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 1Gi}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: logs
+              mountPath: /logs
+      volumes:
+        - name: logs
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 20Gi
