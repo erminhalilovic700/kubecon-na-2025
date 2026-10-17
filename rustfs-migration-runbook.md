@@ -61,9 +61,8 @@ What gets migrated (inventoried 2026-10-16):
 
 ## Rollback
 
-The MinIO PVC `data-minio-0` is kept (`whenDeleted: Retain`). `git revert` the cutover commit and
-push; Argo CD brings MinIO back on its untouched data. After the cutover `minio.minio.svc` points
-at RustFS, so `rclone-sync-job.yaml` no longer reads from MinIO; don't re-run it. Delete the PVC only once you're happy.
+No longer possible: the MinIO volume `data-minio-0` (and its data on node `nuc`) was deleted on
+2026-10-17 after the cutover was confirmed. RustFS's PVC is `minio/data-rustfs-0`.
 
 ## Gotchas found during cutover
 
