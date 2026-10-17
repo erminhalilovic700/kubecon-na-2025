@@ -20,7 +20,7 @@ What gets migrated (inventoried 2026-10-16):
 
 ## Phase 1: run RustFS alongside MinIO
 
-1. Merge the PR adding `minio/rustfs.yaml`. Argo CD creates `rustfs-0` + Service `rustfs`.
+1. Push `minio/rustfs.yaml` to `main`. Argo CD creates `rustfs-0` + Service `rustfs`.
    ```sh
    kubectl -n minio rollout status sts/rustfs
    ```
@@ -43,13 +43,13 @@ What gets migrated (inventoried 2026-10-16):
 
 1. **Keycloak (manual):** in the `minio` client add the redirect URI
    `https://content.erminstudio.com/rustfs/admin/v3/oidc/callback/default`
-   (keep the old one until the cutover is confirmed).
+   (keep the old one until the cutover is confirmed). Done 2026-10-16.
 2. Run a final delta copy right before merging, so only seconds of writes are at risk:
    ```sh
    kubectl -n minio delete job rclone-sync
    kubectl apply -f minio/migrate-to-rustfs/rclone-sync-job.yaml && kubectl -n minio logs -f job/rclone-sync
    ```
-3. Merge the cutover PR. It:
+3. Push the cutover commit to `main`. It:
    - points the `minio` Service at `app: rustfs` (consumers follow automatically),
    - adds Keycloak OIDC to RustFS (`RUSTFS_IDENTITY_OPENID_*`, roles claim `policy` →
      built-in `consoleAdmin` / `readwrite` / `readonly`, same as before),
@@ -61,5 +61,6 @@ What gets migrated (inventoried 2026-10-16):
 
 ## Rollback
 
-The MinIO PVC `data-minio-0` is kept (`whenDeleted: Retain`). Revert the cutover PR and Argo CD
-brings MinIO back on its untouched data. Delete the PVC only once you're happy.
+The MinIO PVC `data-minio-0` is kept (`whenDeleted: Retain`). `git revert` the cutover commit and
+push; Argo CD brings MinIO back on its untouched data. After the cutover `minio.minio.svc` points
+at RustFS, so `rclone-sync-job.yaml` no longer reads from MinIO; don't re-run it. Delete the PVC only once you're happy.

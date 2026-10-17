@@ -37,6 +37,13 @@ spec:
   gateways: [istio-system/content-gateway]
   hosts: [content.erminstudio.com]
   http:
+    # RustFS console lives under /rustfs/console/; bare host goes there
+    - match:
+        - uri:
+            exact: /
+      redirect:
+        uri: /rustfs/console/
+    # RustFS port 9001 serves the console, its API calls and the OIDC callback
     - headers:
         request:
           set:
@@ -44,6 +51,6 @@ spec:
             X-Forwarded-Port: "443"
       route:
         - destination:
-            host: minio-console.minio.svc.cluster.local
+            host: rustfs.minio.svc.cluster.local
             port:
-              number: 9090
+              number: 9001

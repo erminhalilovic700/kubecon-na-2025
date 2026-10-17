@@ -1,5 +1,24 @@
 # RustFS: S3-compatible replacement for MinIO (see rustfs-migration-runbook.md).
-# Phase 1: runs next to MinIO on its own Service/PVC; nothing points at it yet.
+# The `minio` Service keeps its name so every client (Loki, Mimir, Tempo, Keycloak backup,
+# content app) keeps using minio.minio.svc.cluster.local:9000 unchanged.
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: minio
+  labels:
+    app: rustfs
+spec:
+  selector:
+    app: rustfs
+  ports:
+    - name: s3
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -63,6 +82,21 @@ spec:
             - {name: RUSTFS_REGION, value: us-east-1}
             - {name: RUSTFS_OBS_LOG_DIRECTORY, value: /logs}
             - {name: RUSTFS_OBS_LOGGER_LEVEL, value: info}
+            # SSO via Keycloak (realm erminstudio, client minio). The `policy` claim carries
+            # consoleAdmin/readwrite/readonly, which match RustFS's built-in policies.
+            - {name: RUSTFS_BROWSER_REDIRECT_URL, value: "https://content.erminstudio.com"}
+            - {name: RUSTFS_IDENTITY_OPENID_ENABLE, value: "on"}
+            # Issuer URL (RustFS appends /.well-known/...); must match the token issuer
+            - {name: RUSTFS_IDENTITY_OPENID_CONFIG_URL, value: "https://keycloak.erminstudio.com/realms/erminstudio"}
+            - {name: RUSTFS_IDENTITY_OPENID_CLIENT_ID, value: minio}
+            - name: RUSTFS_IDENTITY_OPENID_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: minio-oidc, key: client_secret}
+            - {name: RUSTFS_IDENTITY_OPENID_SCOPES, value: "openid,profile,email"}
+            - {name: RUSTFS_IDENTITY_OPENID_REDIRECT_URI, value: "https://content.erminstudio.com/rustfs/admin/v3/oidc/callback/default"}
+            - {name: RUSTFS_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC, value: "off"}
+            - {name: RUSTFS_IDENTITY_OPENID_ROLES_CLAIM, value: policy}
+            - {name: RUSTFS_IDENTITY_OPENID_DISPLAY_NAME, value: Keycloak}
           ports:
             - {name: s3, containerPort: 9000}
             - {name: console, containerPort: 9001}
