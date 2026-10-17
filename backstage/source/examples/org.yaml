@@ -2,7 +2,7 @@
 apiVersion: backstage.io/v1alpha1
 kind: User
 metadata:
-  name: vrabbi
+  name: erminhalilovic700
 spec:
   memberOf: [guests]
 ---
