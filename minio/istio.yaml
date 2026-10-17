@@ -37,10 +37,15 @@ spec:
   gateways: [istio-system/content-gateway]
   hosts: [content.erminstudio.com]
   http:
-    # RustFS console lives under /rustfs/console/; bare host goes there
+    # RustFS console lives under /rustfs/console/; send a plain browser visit to the bare
+    # host there. Signed S3 calls to "/" (ListBuckets, used by the console's Key Login)
+    # carry an Authorization header and must reach RustFS, not be redirected.
     - match:
         - uri:
             exact: /
+          withoutHeaders:
+            authorization:
+              regex: ".+"
       redirect:
         uri: /rustfs/console/
     # RustFS port 9001 serves the console, its API calls and the OIDC callback
