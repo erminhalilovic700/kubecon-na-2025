@@ -1,0 +1,81 @@
+# In-cluster HTTPS route to Keycloak for RustFS's OIDC client.
+# RustFS sends no User-Agent header, and Cloudflare challenges such requests (403), so
+# RustFS can't use the public keycloak.erminstudio.com. Instead, rustfs-0 resolves that
+# name to the Istio ingress gateway (hostAliases in rustfs.yaml) and reaches Keycloak here,
+# over TLS signed by the internal rancher-ca. Same hostname, so the token issuer matches.
+# Browsers still use the public URL through Cloudflare; this route is cluster-only.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: keycloak-internal-cert
+  namespace: istio-system
+spec:
+  secretName: keycloak-internal-tls
+  dnsNames:
+    - keycloak.erminstudio.com
+  issuerRef:
+    kind: ClusterIssuer
+    name: rancher-ca-issuer
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: keycloak-internal-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - hosts: [keycloak.erminstudio.com]
+      port: {name: https-keycloak-internal, number: 443, protocol: HTTPS}
+      tls:
+        mode: SIMPLE
+        credentialName: keycloak-internal-tls
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: keycloak-internal
+  namespace: minio
+spec:
+  gateways: [istio-system/keycloak-internal-gateway]
+  hosts: [keycloak.erminstudio.com]
+  http:
+    - headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+            X-Forwarded-Port: "443"
+      route:
+        - destination:
+            host: keycloak-service.keycloak.svc.cluster.local
+            port:
+              number: 8080
+---
+# Public CA certificate of the rancher-ca ClusterIssuer (valid to 2036), trusted by RustFS
+# via SSL_CERT_FILE so it accepts keycloak-internal-tls.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rustfs-trusted-ca
+  namespace: minio
+data:
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIC9zCCAd+gAwIBAgIRALpupJhX99JcJv3xfALZsPUwDQYJKoZIhvcNAQELBQAw
+    FTETMBEGA1UEAxMKcmFuY2hlci1jYTAeFw0yNjA3MjAwMDQxMzhaFw0zNjA3MTcw
+    MDQxMzhaMBUxEzARBgNVBAMTCnJhbmNoZXItY2EwggEiMA0GCSqGSIb3DQEBAQUA
+    A4IBDwAwggEKAoIBAQDIdzwrnhjUyP6tUMnugJBVv9+UjKhG0N9FEBaj/osbdYo2
+    imxmz0jFNp399XeeN26MbMRguaFSzQKsNOv2TCJc0r4GBkJ1LZXjWYoCGRmMIZ+/
+    P91kwhm18SQllMMt5DHN6INwV9HNyZZYFspzF8PilhUH0iV0LNpGwmprsxMJ/T/t
+    bfNAblcUri70uki81MkkqSlGLg3hrSfq6ELItU3sFhvwu3OVI2lW9USIZWfLKnab
+    3y59+jKPHWRg9OofZjhqsH7zaCcnl7jImxIT2Z1q2Lrsyxn3KIJOgQoD51qvMQ1K
+    +h9qa8yq1wJ8M9VuzYm/5PBegQTqhq1fCRnmKvmJAgMBAAGjQjBAMA4GA1UdDwEB
+    /wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQSpTQyCzz+2QZmftwD
+    pt6/reC94DANBgkqhkiG9w0BAQsFAAOCAQEACuuGomZ2ZXd72z9/4n8a6/2f7xuL
+    BKAp9aDsgyxp4lKrv2YtyJsK4SnCWaAXfwt2U7SxBM3TepCv/wEQUMd4Ud0zNWj6
+    rOP0HA69d9ZbCAjxMOsmTZAWmEkJs9S9cql/KyQapMMyysitn5lUK+QLjirHHjTa
+    qjr55O85oq4mwavJS8WxgoyNDNdbVbGpHV/wAohjzgJttM+mEQHDEIgiX4lLmnUD
+    4l0U9AD0dweUaSZYiUbf9Qc0rm8Y9E7XDTfBPXvf00D8H/uUAHQjv5kgP/020sdC
+    5gl+eBFpCTIpEd3tKLK7rgYOZSZiw5OgGHMcVWPJECBqcI8U5cFTDpPh5w==
+    -----END CERTIFICATE-----

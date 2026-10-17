@@ -63,6 +63,11 @@ spec:
         runAsGroup: 10001
         fsGroup: 10001
         runAsNonRoot: true
+      # Reach Keycloak via the in-cluster Istio gateway, not Cloudflare (see keycloak-internal.yaml).
+      # 10.43.5.231 = istio-system/istio-ingressgateway ClusterIP; update if that Service is recreated.
+      hostAliases:
+        - ip: "10.43.5.231"
+          hostnames: [keycloak.erminstudio.com]
       containers:
         - name: rustfs
           # Mirror of rustfs/rustfs:1.0.2
@@ -97,6 +102,10 @@ spec:
             - {name: RUSTFS_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC, value: "off"}
             - {name: RUSTFS_IDENTITY_OPENID_ROLES_CLAIM, value: policy}
             - {name: RUSTFS_IDENTITY_OPENID_DISPLAY_NAME, value: Keycloak}
+            # keycloak.erminstudio.com resolves to a private IP here, which RustFS's outbound
+            # policy blocks unless allowed; and its cert is signed by the internal rancher-ca.
+            - {name: RUSTFS_OUTBOUND_ALLOW_ORIGINS, value: "https://keycloak.erminstudio.com"}
+            - {name: SSL_CERT_FILE, value: /etc/rustfs/ca/ca.crt}
           ports:
             - {name: s3, containerPort: 9000}
             - {name: console, containerPort: 9001}
@@ -119,9 +128,15 @@ spec:
               mountPath: /data
             - name: logs
               mountPath: /logs
+            - name: trusted-ca
+              mountPath: /etc/rustfs/ca
+              readOnly: true
       volumes:
         - name: logs
           emptyDir: {}
+        - name: trusted-ca
+          configMap:
+            name: rustfs-trusted-ca
   volumeClaimTemplates:
     - metadata:
         name: data

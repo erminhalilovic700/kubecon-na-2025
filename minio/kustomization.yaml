@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - rustfs.yaml
   - istio.yaml
+  - keycloak-internal.yaml
